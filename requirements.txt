@@ -1,0 +1,8 @@
+# Core
+fastapi==0.115.*
+uvicorn[standard]==0.34.*
+python-dotenv==1.0.*  # env‑переменные
+python-multipart
+
+python-dotenv
+google-genai>=1.51.0
