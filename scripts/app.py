@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import os
 import requests
 from dotenv import load_dotenv
+import base64
 
 from scripts.sessions import ChatSessionManager
 
@@ -12,6 +13,29 @@ load_dotenv()
 crew_llm = os.getenv("CREW_LLM")
 analysis_api_url = os.getenv("ANALYSIS_API_URL")
 max_messages = os.getenv("MAX_HISTORY_MESSAGES")
+
+def get_payload(facade_base64, roof_base64):
+    payload = {
+        "request_id": "demo-001",
+        "images": [
+            {
+                "image_id": "facade-001",
+                "role": "facade",
+                "image_base64": facade_base64,
+                "mime_type": "image/jpeg",
+                "metadata": {},
+            },
+            {
+                "image_id": "roof-001",
+                "role": "roof",
+                "image_base64": roof_base64,
+                "mime_type": "image/jpeg",
+                "metadata": {},
+            },
+        ],
+        "context": {},
+    }
+    return payload
 
 def create_app():
     # Регистрация роутов и настройка приложения
@@ -48,22 +72,19 @@ def create_app():
             raise HTTPException(status_code=400, detail="user_id is required")
 
         # Читаем байты обоих изображений
-        images_bytes = [
-            await facade_img.read(),
-            await roof_img.read(),
-        ]
+        facade_bytes = await facade_img.read()
+        roof_bytes = await roof_img.read()
 
-        # Вызов внешнего API анализа
         try:
-            files = {
-                "image1": ("image1.jpg", images_bytes[0], "image/jpeg"),
-                "image2": ("image2.jpg", images_bytes[1], "image/jpeg"),
-            }
+            facade_base64 = base64.b64encode(facade_bytes).decode("utf-8")
+            roof_base64 = base64.b64encode(roof_bytes).decode("utf-8")
+
             resp = requests.post(
                 analysis_api_url,
-                files=files,
+                json=get_payload(facade_base64, roof_base64),
                 timeout=30,
             )
+
 
             if resp.status_code != 200:
                 raise HTTPException(
