@@ -80,11 +80,6 @@ class ChatSessionManager:
         self._chats.update({user_id: chat})
         return {"status": "success"}
 
-    #def make_request_text(self, user_request, user_id):
-
-
-
-
     def get_users_ids(self):
         return list(self._current_context.keys())
 
@@ -92,7 +87,7 @@ class ChatSessionManager:
         chat_history = self.get_history(user_id)
         if not chat_history:
             return {"status": "empty", "comment": f"history is empty for user {user_id}"}
-        return history_adapter.dump_json(chat_history)
+        return self.history_adapter.dump_json(chat_history)
 
     def send_mgs_to_llm(self, user_id, user_request):
         chat_history = self.get_history(user_id)
