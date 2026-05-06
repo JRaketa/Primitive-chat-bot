@@ -14,6 +14,11 @@ crew_llm = os.getenv("CREW_LLM")
 analysis_api_url = os.getenv("ANALYSIS_API_URL")
 max_messages = os.getenv("MAX_HISTORY_MESSAGES")
 
+api_description = (
+    "To initiate the chat with a user (with specific user_id) about a specific building (buiding_id) you need to call *start_building_session* function first.\n"
+    ""
+)
+
 def get_payload(facade_base64, roof_base64):
     payload = {
         "request_id": "demo-001",
@@ -62,11 +67,17 @@ def create_app():
         facade_img: UploadFile = File(...),
         roof_img: UploadFile = File(...),
     ):
-        """
+        """Initiate chat
+
+
+        Args:
         - user_id: str
         - buiding_id: str
         - image1: UploadFile
         - image2: UploadFile
+
+        Returns:
+        - {"status": "registered"} if everithing is correct. Otherwise, returns an Exception with error description.
         """
         if not user_id:
             raise HTTPException(status_code=400, detail="user_id is required")
