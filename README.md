@@ -14,10 +14,10 @@ sudo docker run --rm -p 8000:8000 --network=host --name chat-bot-container chat-
 
 # Логика работы бота
 
-Для работы доступны три API команды:
-* `/api/building/start` - Инициация диалога бота с пользователем по данному зданию.
-* `/api/building/chat` - Общение с ботом.
-* `/api/health` - Чат бот жив или нет.
+Commands:
+* `/api/building/start` - Init a dialog with bot about one building.
+* `/api/building/chat` - Chat with bot.
+* `/api/health` - Either bot alive or not.
 
 ## Логика работы каждого инструмента
 
