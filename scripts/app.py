@@ -151,7 +151,7 @@ def create_app():
             
         """
         try:
-            hist = chat_manager.get_history_json(user_id, building_id)
+            hist = chat_manager.get_history(user_id, building_id)
             if hist:
                 return {"status": "success", "history": hist}
         except Exception as e:
