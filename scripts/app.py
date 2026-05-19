@@ -186,6 +186,7 @@ def create_app():
         - user_id: str
     RETURNS:
         - list if building's ids: list: [<building_id>, <building_id>, ...]
+    """
         return {"status": "test"}
         
 
