@@ -154,7 +154,7 @@ def create_app():
             hist = chat_manager.get_history_json(user_id, building_id)
             if hist:
                 return {"status": "success", "history": hist}
-        except Exception as e
+        except Exception as e:
             return {"status": "error", "comment": e}
 
     @app.get("/api/building/users")
@@ -177,7 +177,7 @@ def create_app():
         ARGS:
             - building_id: str
         RETURNS:
-            - user_history: json
+            - building_context: str (MD)
         """
         return chat_manager.get_context(building_id)
 
