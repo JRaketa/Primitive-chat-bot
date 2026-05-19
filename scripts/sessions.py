@@ -21,7 +21,7 @@ class ChatSessionManager:
         self._sessions: Dict[str, dict] = {}
         # { user_id : building_id}
         self._current_context: Dict[str, dict] = {}
-        # { user_id : gemini_chat}
+        # { user_id : {building_id: gemini_chat}}
         self._chats: Dict[str, Dict[str, client.chats]] = {}
         # { building_id : context}
         self._contexts: Dict[str, str] = {}
@@ -57,6 +57,12 @@ class ChatSessionManager:
     def init_chat(self, user_id, building_id):
         self._chats[user_id] = {building_id: self.get_new_chat()}
 
+    def get_user_contexts(self, user_id, building_id):
+        user_chats = self._chats.get(user_id)
+        if user_chats != None:
+            return list(user_chats.keys())
+        return None
+    
     def get_new_chat(self):
         return self.client.chats.create(
             model=self.model,
