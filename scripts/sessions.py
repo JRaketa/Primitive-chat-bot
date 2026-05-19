@@ -100,7 +100,7 @@ class ChatSessionManager:
             if part.get('text') != None:
                 return part.get('text')
         
-    def extract_replica_from_parts(msg):
+    def extract_replica_from_parts(self, msg):
         role = self.get_role(msg)
         text = self.get_text(msg)
         return {"role": role, "text": text}
