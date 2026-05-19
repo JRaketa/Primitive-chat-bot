@@ -75,11 +75,17 @@ def create_app():
         facade_img: UploadFile = File(...),
         roof_img: UploadFile = File(...),
     ):
-        """
-        - user_id: str
-        - buiding_id: str
-        - image1: UploadFile
-        - image2: UploadFile
+        """Session initiation.
+        To initiate a chat with `user_id` about `buiding_id` you must send `facade_img` and `roof_img`
+        for exterior analysis. Text data from other sources about this building is collected by backend of this API. 
+        
+        ARGS:
+            - user_id: str
+            - buiding_id: str
+            - image1: UploadFile
+            - image2: UploadFile
+        RETURNS:
+            - {"status": "registered"}: json - in case all data about the building was collected and recorded by backend successfully. Otherwise it returns error with status code and the error explanation.
         """
         if not user_id:
             raise HTTPException(status_code=400, detail="user_id is required")
@@ -128,29 +134,63 @@ def create_app():
         user_id: str = Form(...),
         building_id: str = Form(...)
     ):
-        """
+        """Returns chat bot history for `user_id` and `building_id` 
         ARGS:
             - user_id: str
+            - building_id: str
         RETURNS:
-            - user_history: json
+            - user_history: list of jsons
+            
+            HISTORY FORMAT:
+            [
+                {'role': 'user', 'content': <text>},
+                {'role': 'system', 'content': <text>},
+                {'role': 'user', 'content': <text>},
+                ... ...
+            ]
+            
         """
         return chat_manager.get_history_json(user_id, building_id)
 
     @app.get("/api/building/users")
     def get_users():
-        """
+        """Returns list of registered users id.
+        
+        Requires no params.
         """
         return chat_manager.get_users_ids()
 
-    @app.post("/api/building/context")
+    @app.post("/api/building/building_context")
     def get_context(
+        building_id: str = Form(...)
+    ):
+        """Returns building's context.
+
+        Building's context is all text data was collected on registration `/api/building/start`.
+        Context is used as knowledge base for the QA agent. 
+
+        ARGS:
+            - building_id: str
+        RETURNS:
+            - user_history: json
+        """
+        return chat_manager.get_context(building_id)
+
+    @app.post("/api/building/user_contexts")
+    def get_user_contexts(
         user_id: str = Form(...)
     ):
-        """
-        """
-        return chat_manager.get_user_context(user_id)
+    """Returns dict with user's registered building_ids.
+
+    ARGS:
+        - user_id: str
+    RETURNS:
+        - list if building's ids: list: [<building_id>, <building_id>, ...]
+        return {"status": "test"}
+        
 
 
+        
     @app.post("/api/building/chat")
     def chat(
         user_id: str = Form(...),
