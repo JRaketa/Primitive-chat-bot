@@ -57,7 +57,7 @@ class ChatSessionManager:
     def init_chat(self, user_id, building_id):
         self._chats[user_id] = {building_id: self.get_new_chat()}
 
-    def get_user_contexts(self, user_id, building_id):
+    def get_user_contexts(self, user_id):
         user_chats = self._chats.get(user_id)
         if user_chats != None:
             return list(user_chats.keys())
