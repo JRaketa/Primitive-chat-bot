@@ -180,13 +180,13 @@ def create_app():
     def get_user_contexts(
         user_id: str = Form(...)
     ):
-    """Returns dict with user's registered building_ids.
+        """Returns dict with user's registered building_ids.
 
-    ARGS:
-        - user_id: str
-    RETURNS:
-        - list of building's ids: list: [<building_id>, <building_id>, ...]
-    """
+        ARGS:
+            - user_id: str
+        RETURNS:
+            - list of building's ids: list: [<building_id>, <building_id>, ...]
+        """
         return {"status": "test"}
         
 
