@@ -77,6 +77,9 @@ class ChatSessionManager:
         building_id = self._current_context.get(user_id, None)
         return self.get_context(building_id)
 
+   # def get_building_context(self, building_id):
+   #     return self.get_context(building_id)
+        
     def get_current_context_id(self, user_id):
         return self._current_context.get(user_id, None)
 
