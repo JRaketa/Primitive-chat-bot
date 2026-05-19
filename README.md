@@ -12,18 +12,17 @@ sudo docker build -t chat-bot  .
 sudo docker run --rm -p 8000:8000 --network=host --name chat-bot-container chat-bot
 ```
 
-# Логика работы бота
+# Commands
 
-Commands:
 * `/api/building/start` - Init a dialog with bot about one building.
 * `/api/building/chat` - Chat with bot.
 * `/api/health` - Either bot alive or not.
 
-## Логика работы каждого инструмента
+## Usage
 
 * `/api/building/start`
 
-Пример использования:
+Curl example:
 
 ```curl
 curl -X 'POST' \
@@ -36,57 +35,22 @@ curl -X 'POST' \
   -F 'roof_img=@img2.jpg;type=image/jpeg'
 ```
 
-Необходимые параметры для передачи:
-* `user_id` - id пользователя
-* `buiding_id` - id здания (от Google Maps)
-* `facade_img` - изображение фасада здания
-* `roof_img` - изображение крыши здания со спутника для анализа дефектов крыши.
+Parameters:
+* `user_id`
+* `buiding_id`
+* `facade_img` building's facade image (png, jpeg).
+* `roof_img` - building's roof image from satellite for roof defect analysis.
 
-Алгоритм инициации диалога:
+* `/api/building/chat`
 
-1. Изображения `facade_img` и `roof_img` отправляются в сервис анализа Антона. В случае успешного запроса получаем ответ в виде текста, данный текст является контекстом для QA агента:
+* `/api/health`
 
+* `/api/building/history`
 
+* `/api/building/users`
 
-```
-building_text = "Жилой комплекс представляет собой современное многоэтажное здание ... "
-```
+* `/api/building/context`
 
-2. Регистрация контекста для данного здания. Необходимо для дальнейшего анализа качества получаемого контекста.
-
-```python
-chat_manager.add_context(
-          building_id=buiding_id, context=building_text)
-```
-
-3. Регистрация текущего контекста для данного пользователя: по контексту какого здания сейчас боту нужно давать информацию данному пользователю.
-
-```python
-chat_manager.set_current_context_id(
-          user_id=user_id, building_id=buiding_id)
-```
-
-4. Инициация чата. Происходит в несколько этапов: <br/>
-4.1 Инициация нового Gemini чата:
-```python
-chat = client.chats.create(
-          model=self.model,
-          config=types.GenerateContentConfig(
-                system_instruction=self.system_prompt
-                )
-      )
-```
-
-4.2 Добавление его в словарь с контекстами по каждому пользователю:
-```python
-chats[user_id] = chat
-```
-
-
-
-
-
-# Пуск
 
 **ChatBot server**
 
@@ -94,7 +58,7 @@ chats[user_id] = chat
 uvicorn scripts.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**Fake abakysis server**
+**Fake analysis server**
 ```bash
 uvicorn scripts.analyse:app --host 0.0.0.0 --port 8080 --reload
 ```
