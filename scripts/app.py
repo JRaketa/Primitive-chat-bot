@@ -192,7 +192,16 @@ def create_app():
         RETURNS:
             - list of building's ids: list: [<building_id>, <building_id>, ...]
         """
-        return {"status": "test"}
+        try:
+            buildings_ids = chat_manager.get_user_contexts()
+            if buildings_ids:
+                return {"status": "success", "comment": "not empty", "buidings_ids": buildings_ids}
+            return {"status": "success", "comment": "empty", "buidings_ids": buildings_ids}
+        except Exception as ex:
+            return {"status": "error", "comment": ex}
+            
+                
+        
         
 
 
