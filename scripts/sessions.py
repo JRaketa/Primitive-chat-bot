@@ -92,11 +92,28 @@ class ChatSessionManager:
             return None
         return chat
 
-    def get_history(self, user_id, building_id):
-        return self.get_chat(user_id, building_id).get_history()
+    def get_role(self, msg):
+        return msg.model_dump()['role']
 
-#    def make_user_prompt(self, question, context):
-#        return f"Context: {context}\n\nQuestion: {question}"
+    def get_text(self, msg):
+        for part in msg.model_dump()['parts']:
+            if part.get('text') != None:
+                return part.get('text')
+        
+    def extract_replica_from_parts(msg):
+        role = self.get_role(msg)
+        text = self.get_text(msg)
+        return {"role": role, "text": text}
+
+    def extract_history(self, chat):
+        history = []
+        for msg in chat.get_history():
+            history.append(self.extract_replica_from_parts(msg))
+        return history 
+    
+    def get_history(self, user_id, building_id):
+        chat = self.get_chat(user_id, building_id)
+        return self.extract_history(chat)
 
     def request_to_llm(self, question, user_id, building_id):
         #context = self.get_user_context(user_id)
