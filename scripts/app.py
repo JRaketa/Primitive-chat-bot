@@ -90,6 +90,11 @@ def create_app():
         if not user_id:
             raise HTTPException(status_code=400, detail="user_id is required")
 
+        buildings_ids = chat_manager.get_user_contexts(user_id)
+        if type(buildings_ids) == list:
+            if buiding_id in buildings_ids:
+                return {"status": "error", "comment": f"Pair user_id <{user_id}> and buiding_id <{buiding_id}>."}
+        
         # Читаем байты обоих изображений
         facade_bytes = await facade_img.read()
         roof_bytes = await roof_img.read()
@@ -200,7 +205,7 @@ def create_app():
             buildings_ids = chat_manager.get_user_contexts(user_id)
             if buildings_ids:
                 return {"status": "success", "comment": "not empty", "buidings_ids": buildings_ids}
-            return {"status": "success", "comment": "empty", "buidings_ids": buildings_ids}
+            return {"status": "success", "comment": "empty", "buidings_ids": []}
         except Exception as ex:
             return {"status": "error", "comment": ex}
             
