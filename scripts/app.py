@@ -155,7 +155,7 @@ def create_app():
             if hist:
                 return {"status": "success", "history": hist}
         except Exception as e:
-            return {"status": "error", "comment": e}
+            return {"status": "error", "comment": f"There is no history for user_id <{user_id}> and <{building_id}>"}
 
     @app.get("/api/building/users")
     def get_users():
