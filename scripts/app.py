@@ -93,7 +93,7 @@ def create_app():
         buildings_ids = chat_manager.get_user_contexts(user_id)
         if type(buildings_ids) == list:
             if buiding_id in buildings_ids:
-                return {"status": "error", "comment": f"Pair user_id <{user_id}> and buiding_id <{buiding_id}>."}
+                return {"status": "error", "comment": f"Pair user_id <{user_id}> and buiding_id <{buiding_id}> has been registered."}
         
         # Читаем байты обоих изображений
         facade_bytes = await facade_img.read()
