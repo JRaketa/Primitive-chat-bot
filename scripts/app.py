@@ -193,7 +193,7 @@ def create_app():
             - list of building's ids: list: [<building_id>, <building_id>, ...]
         """
         try:
-            buildings_ids = chat_manager.get_user_contexts()
+            buildings_ids = chat_manager.get_user_contexts(user_id)
             if buildings_ids:
                 return {"status": "success", "comment": "not empty", "buidings_ids": buildings_ids}
             return {"status": "success", "comment": "empty", "buidings_ids": buildings_ids}
