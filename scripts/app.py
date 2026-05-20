@@ -154,8 +154,9 @@ def create_app():
             hist = chat_manager.get_history(user_id, building_id)
             if hist:
                 return {"status": "success", "history": hist}
+            return {"status": "success", "comment": f"History for user_id <{user_id}> and building_id <{building_id}", "history": []}
         except Exception as e:
-            return {"status": "error", "comment": f"There is no history for user_id <{user_id}> and <{building_id}>"}
+            return {"status": "error", "comment": f"Chat for user_id <{user_id}> and building_id <{building_id}> was not initiated."}
 
     @app.get("/api/building/users")
     def get_users():
@@ -179,7 +180,10 @@ def create_app():
         RETURNS:
             - building_context: str (MD)
         """
-        return chat_manager.get_context(building_id)
+        build_context = chat_manager.get_context(building_id)
+        if build_context:
+            return {"status": "success", "context": build_context}
+        return {"status": "error", "comment": f"There is no context for building_id <{building_id}>"}
 
     @app.post("/api/building/user_contexts")
     def get_user_contexts(
