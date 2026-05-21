@@ -75,7 +75,8 @@ def create_app():
         facade_img: UploadFile = File(...),
         roof_img: UploadFile = File(...),
     ):
-        """Session initiation.
+        """
+        **Session initiation.** <br/>
         To initiate a chat with `user_id` about `buiding_id` you must send `facade_img` and `roof_img`
         for exterior analysis. Text data from other sources about this building is collected by backend of this API. 
         
