@@ -77,16 +77,18 @@ def create_app():
     ):
         """
         **Session initiation.** <br/>
-        To initiate a chat with `user_id` about `buiding_id` you must send `facade_img` and `roof_img`
-        for exterior analysis. Text data from other sources about this building is collected by backend of this API. 
+        To initiate a chat with `user_id` about `buiding_id` you must send `facade_img` and `roof_img` *(jpeg, png)*
+        for exterior analysis. <br/>
+        Text data from other sources about this building is collected by backend of this API *(coming soon)*.<br/> 
         
-        ARGS:
-            - user_id: str
-            - buiding_id: str
-            - image1: UploadFile
-            - image2: UploadFile
-        RETURNS:
-            - {"status": "registered"}: json - in case all data about the building was collected and recorded by backend successfully. Otherwise it returns error with status code and the error explanation.
+        **ARGS:**
+        * *user_id*: str
+        * *buiding_id*: str
+        * *image1*: UploadFile
+        * *image2*: UploadFile
+
+        **RETURNS:**
+        * *{"status": "registered"}*: json - in case all data about the building was collected and recorded by backend successfully. <br/> Otherwise it returns error with status code and the error explanation.
         """
         if not user_id:
             raise HTTPException(status_code=400, detail="user_id is required")
