@@ -49,10 +49,18 @@ def json2md(responce_json):
                 context += res.replace("_", " ") + ": " + str(sub_val) + '\n'
     return context
 
+descr = """# Quick Start
+1. Initiate session for user with `user_id` about buiding with `buiding_id`. Use `/api/building/start` method.
+2. 
+        
+"""
 
 def create_app():
     # Регистрация роутов и настройка приложения
-    app = FastAPI(title="Building Agent API", debug=True)
+    app = FastAPI(
+        title="Building Agent API",
+        description=descr, 
+        debug=True)
 
     chat_manager = ChatSessionManager(max_messages=50)
 
@@ -77,18 +85,23 @@ def create_app():
     ):
         """
         **Session initiation.** <br/>
-        To initiate a chat with `user_id` about `buiding_id` you must send `facade_img` and `roof_img` *(jpeg, png)*
-        for exterior analysis. <br/>
-        Text data from other sources about this building is collected by backend of this API *(coming soon)*.<br/> 
+        To initiate a chat with `user_id` about `buiding_id` you must send `facade_img` and `roof_img` *(jpeg, png)*>.<br/>
+        This two images are sent to AI module for exterior analysis. AI module returns analysis as text. <br/>
+        Text data from other sources about this building is collected by backend of this API using `buiding_id` *(coming soon)*.<br/> 
+        All collected text data is used in QA agent. To read all collected text data about `buiding_id` use `/api/building/building_context`.
+
+        Re-registration for pair (`user_id` and `buiding_id`) is not possible.<br/>
+        In this case API returnd `Pair user_id <{user_id}> and buiding_id <{buiding_id}> has been registered.`.
         
         **ARGS:**
         * *user_id*: str
         * *buiding_id*: str
         * *image1*: UploadFile
         * *image2*: UploadFile
-
+        
         **RETURNS:**
-        * *{"status": "registered"}*: json - in case all data about the building was collected and recorded by backend successfully. <br/> Otherwise it returns error with status code and the error explanation.
+        * *{"status": "registered"}*: json - in case all data about the building was collected and recorded by backend successfully.<br/>
+        Otherwise it returns error with status code and the error explanation.
         """
         if not user_id:
             raise HTTPException(status_code=400, detail="user_id is required")
@@ -142,22 +155,21 @@ def create_app():
         user_id: str = Form(...),
         building_id: str = Form(...)
     ):
-        """Returns chat bot history for `user_id` and `building_id` 
-        ARGS:
-            - user_id: str
-            - building_id: str
-        RETURNS:
-            - user_history: list of jsons
+        """**Returns chat bot history for `user_id` and `building_id`.**
+        
+        **ARGS:**
+        * *user_id:* str
+        * *building_id:* str
+        **RETURNS:**
+        * *user_history:* list of jsons
             
-            HISTORY FORMAT:
-            [
-                {'role': 'user', 'content': <text>},
-                {'role': 'system', 'content': <text>},
-                {'role': 'user', 'content': <text>},
-                ... ...
-            ]
-            
-        """
+        **HISTORY FORMAT:**
+        [
+            {'role': 'user', 'content': <text>},
+            {'role': 'system', 'content': <text>},
+            {'role': 'user', 'content': <text>},
+            ... ...
+        ]"""
         try:
             hist = chat_manager.get_history(user_id, building_id)
             if hist:
@@ -168,7 +180,7 @@ def create_app():
 
     @app.get("/api/building/users")
     def get_users():
-        """Returns list of registered users id.
+        """**Returns list of registered users id.**
         
         Requires no params.
         """
@@ -178,15 +190,18 @@ def create_app():
     def get_context(
         building_id: str = Form(...)
     ):
-        """Returns building's context.
+        """**Returns context  for `building_id`.**
 
         Building's context is all text data was collected on registration `/api/building/start`.
         Context is used as knowledge base for the QA agent. 
 
-        ARGS:
-            - building_id: str
-        RETURNS:
-            - building_context: str (MD)
+        **ARGS:**
+        * *building_id:* str
+        
+        **RETURNS:**
+        * If context of *building_id* exists in DB returns json: `{"status": "success", "context": build_context}`
+        * Otherwise, the next json is returned if no user requested info about *building_id*: <br/>
+        `{"status": "error", "comment": f"There is no context for building_id <building_id>"}`
         """
         build_context = chat_manager.get_context(building_id)
         if build_context:
@@ -197,12 +212,22 @@ def create_app():
     def get_user_contexts(
         user_id: str = Form(...)
     ):
-        """Returns dict with user's registered building_ids.
-
-        ARGS:
-            - user_id: str
-        RETURNS:
-            - list of building's ids: list: [<building_id>, <building_id>, ...]
+        """**Returns all `building_ids` that `user_id` requested for analysis.**
+        
+        **ARGS:**
+        * *user_id:* str
+        
+        **RETURNS:**
+        * If `user_id` has requested info about several `building_ids` returns the next *json*:  list of building's ids: list:<br/>
+        `{
+            "status": "success", 
+            "comment": "not empty", 
+            "buidings_ids": [<building_id>, <building_id>, ...]
+        }`
+        * If `user_id` has not requested info about any building returns the next json:<br/>
+        `{"status": "success", "comment": "empty", "buidings_ids": []}`
+        * In case of any error returns: 
+        `{"status": "error", "comment": <error text>}`
         """
         try:
             buildings_ids = chat_manager.get_user_contexts(user_id)
@@ -212,18 +237,22 @@ def create_app():
         except Exception as ex:
             return {"status": "error", "comment": ex}
             
-                
-        
-        
-
-
-        
+       
     @app.post("/api/building/chat")
     def chat(
         user_id: str = Form(...),
         building_id: str = Form(...),
-        user_request: str = Form(...)
+        : str = Form(...)
     ):
+      """**Chat with model**
+              
+      **ARGS:**
+        * *user_id:* str
+        * *building_id*: str
+        * *user_request*: str
+
+      **RETURNS:**
+      """  
         resp = chat_manager.request_to_llm(user_request, user_id, building_id)
         return resp
 
