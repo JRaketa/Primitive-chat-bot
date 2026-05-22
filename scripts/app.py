@@ -50,9 +50,9 @@ def json2md(responce_json):
     return context
 
 descr = """# Quick Start
-1. Initiate session for user with `user_id` about buiding with `buiding_id`. Use `/api/building/start` method.
-2. Send user's prompt to LLM using `/api/building/chat`. LLM's responces is stored in history. 
-3. To get history use `/api/building/history`.        
+1. Initiate session for user with **user_id** about buiding with **buiding_id**. Use **/api/building/start** method.
+2. Send user's prompt to LLM using **/api/building/chat**. LLM's responces is stored in history. 
+3. To get history use **/api/building/history**.        
 """
 
 def create_app():
