@@ -244,17 +244,17 @@ def create_app():
         building_id: str = Form(...),
         user_request: str = Form(...)
     ):
-      """**Chat with model**
+        """**Chat with model**
               
-      **ARGS:**
+        **ARGS:**
         * *user_id:* str
         * *building_id*: str
         * *user_request*: str
 
-      **RETURNS:**
-      """  
-        resp = chat_manager.request_to_llm(user_request, user_id, building_id)
-        return resp
+        **RETURNS:**
+        * {"status": "success"}: json - in case of succesfull 
+        """ 
+        return chat_manager.request_to_llm(user_request, user_id, building_id)
 
     return app
 
