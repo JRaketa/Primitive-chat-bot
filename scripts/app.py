@@ -242,7 +242,7 @@ def create_app():
     def chat(
         user_id: str = Form(...),
         building_id: str = Form(...),
-        : str = Form(...)
+        user_request: str = Form(...)
     ):
       """**Chat with model**
               
