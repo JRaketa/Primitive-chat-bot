@@ -71,11 +71,6 @@ class ChatSessionManager:
                 )
             )
 
-    def init_session(self, user_id:str, building_id:str, context: str):
-        self.add_context(building_id, context)
-        self.init_chat(user_id, building_id)
-        self._current_context.update({user_id: building_id})
-
     def get_context(self, building_id:str):
         return self._contexts.get(building_id, None)
 
