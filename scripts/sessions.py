@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from google import genai
 from pydantic import TypeAdapter
 from google.genai import types
-
+from pprint import pprint
 #crew_llm = os.getenv("MAX_HISTORY_MESSAGES")
 #system_prompt = os.getenv("GEMINI_SYSTEM_INSTRUCTION")
 
@@ -24,7 +24,7 @@ class ChatSessionManager:
         # { user_id : {building_id: gemini_chat}}
         self._chats: Dict[str, Dict[str, client.chats]] = {}
         # { building_id : context}
-        self._contexts: Dict[str, str] = {}
+        self._contexts: Dict[str, Dict[str, str]] = {}
         # { building_id : file_url}
         self._contexts_url_files: Dict[str, str] = {}
         self.max_messages = max_messages
@@ -34,25 +34,60 @@ class ChatSessionManager:
         self.context_folder_path = os.getenv("CONTEXTS_FOLDER")
         self.history_adapter = TypeAdapter(list[types.Content])
 
-    def save_context_as_txt(self, building_id: str, context: str):
-        with open(self.get_context_file_path(building_id), "w") as f:
-            f.write(context)
+    def save_context_as_txt(
+        self, building_id: str,
+        ai_context: str, cadastrial_context: str):
+        """."""
+        with open(self.get_ai_context_file_path(building_id), "w") as f:
+            f.write(ai_context)
+        with open(self.get_cadastrial_context_file_path(building_id), "w") as f:
+            f.write(cadastrial_context)
 
-    def get_context_file_path(self, building_id:str):
-        return self.context_folder_path + building_id + ".txt"
+    def get_ai_context_file_path(self, building_id:str):
+        return self.context_folder_path + "_ai_context_" + building_id + ".txt"
+
+    def get_cadastrial_context_file_path(self, building_id:str):
+        return self.context_folder_path + "_cadastrial_context_" + building_id + ".txt"
 
     def load_context_to_vec_store(self, building_id:str):
-        file_path = self.get_context_file_path(building_id)
-        my_file = self.client.files.upload(
-            file=file_path)
-        return my_file
+        ai_context_path = self.get_ai_context_file_path(
+            building_id)
+        cadastrial_context_path = self.get_cadastrial_context_file_path(
+            building_id)
 
-    def add_context(self, building_id:str, context: str):
-        self._contexts[building_id] = context
-        self.save_context_as_txt(building_id, context)
-        file_path = self.get_context_file_path(building_id)
-        file_url = self.load_context_to_vec_store(building_id)
-        self._contexts_url_files[building_id] = file_url
+        ai_context_url = self.client.files.upload(
+            file=ai_context_path)
+        cadastrial_context_url = self.client.files.upload(
+            file=cadastrial_context_path)
+        return ai_context_url, cadastrial_context_url
+
+    def update_context(
+        self, building_id:str,
+        ai_context: str, cadastrial_context: str
+        ):
+        """Updates context for building_id"""
+        self._contexts.update({
+            building_id: {
+                "ai_context": ai_context,
+                "cadastrial_context": cadastrial_context
+            }
+        })
+
+    def add_context(
+        self, building_id:str,
+        ai_context:str, cadastrial_context:str
+        ):
+        """."""
+        self.update_context(
+            building_id, ai_context, cadastrial_context)
+        self.save_context_as_txt(
+            building_id, ai_context, cadastrial_context
+            )
+        #file_path = self.get_context_file_path(building_id)
+        ai_context_url, cadastrial_context_url = self.load_context_to_vec_store(building_id)
+        self._contexts_url_files[building_id] = [
+            ai_context_url, cadastrial_context_url
+            ]
 
     def init_chat(self, user_id, building_id):
         self._chats[user_id] = {building_id: self.get_new_chat()}
@@ -62,7 +97,8 @@ class ChatSessionManager:
         if user_chats != None:
             return list(user_chats.keys())
         return None
-    
+
+
     def get_new_chat(self):
         return self.client.chats.create(
             model=self.model,
@@ -71,6 +107,15 @@ class ChatSessionManager:
                 )
             )
 
+    def init_session(self, user_id:str, building_id:str,
+        ai_context: str, cadastrial_context: str):
+
+        """."""
+        self.add_context(
+            building_id, ai_context, cadastrial_context)
+        self.init_chat(user_id, building_id)
+        self._current_context.update({user_id: building_id})
+
     def get_context(self, building_id:str):
         return self._contexts.get(building_id, None)
 
@@ -78,9 +123,6 @@ class ChatSessionManager:
         building_id = self._current_context.get(user_id, None)
         return self.get_context(building_id)
 
-   # def get_building_context(self, building_id):
-   #     return self.get_context(building_id)
-        
     def get_current_context_id(self, user_id):
         return self._current_context.get(user_id, None)
 
@@ -100,7 +142,7 @@ class ChatSessionManager:
         for part in msg.model_dump()['parts']:
             if part.get('text') != None:
                 return part.get('text')
-        
+
     def extract_replica_from_parts(self, msg):
         role = self.get_role(msg)
         text = self.get_text(msg)
@@ -110,11 +152,23 @@ class ChatSessionManager:
         history = []
         for msg in chat.get_history():
             history.append(self.extract_replica_from_parts(msg))
-        return history 
-    
+        return history
+
     def get_history(self, user_id, building_id):
         chat = self.get_chat(user_id, building_id)
         return self.extract_history(chat)
+
+    def create_parts(self, files_urls):
+        """."""
+        all_parts = []
+        for f_url in files_urls:
+            all_parts.append(
+                types.Part(
+                    file_data=types.FileData(
+                        file_uri=f_url.uri,
+                        mime_type=f_url.mime_type)
+                        ))
+        return all_parts
 
     def request_to_llm(self, question, user_id, building_id):
         #context = self.get_user_context(user_id)
@@ -122,23 +176,19 @@ class ChatSessionManager:
         chat = self.get_chat(user_id, building_id)
 
         if chat == None:
-            return {"status": "error", "Comment": f"The user chat with id {user_id} has not been created!"}
+            return {"status": "error", "Comment": f"The user chat with user_id '{user_id}' and building_id '{building_id}' has not been created!"}
 
-        file_url = self._contexts_url_files.get(building_id, None)
+        files_urls = self._contexts_url_files.get(building_id, None)
 
-        if file_url == None:
-            return {"status": "error", "Comment": f"Vector store was not created for  {user_id} has not been created!"}
-        chat.send_message(
-            [
-                types.Part(
-                    file_data=types.FileData(
-                        file_uri=file_url.uri,
-                        mime_type=file_url.mime_type
-                        )
-                    ),
-                    question
-                ]
-            )
+        if files_urls == None:
+            return {
+                "status": "error",
+                "Comment": f"Vector store was not created for  {user_id} has not been created!"}
+
+        all_parts = self.create_parts(files_urls)
+        all_parts.append(question)
+        chat.send_message(all_parts)
+
         self._chats.update({user_id: {building_id: chat}})
         return {"status": "success"}
 
@@ -153,10 +203,3 @@ class ChatSessionManager:
                 "comment": f"history is empty for user_id: {user_id} and building_id: {building_id}"
                 }
         return self.history_adapter.dump_json(chat_history)
-
-#    def send_mgs_to_llm(self, user_id, building_id, user_request):
-#        chat_history = self.get_history(user_id, building_id)
-#        if chat_history == None:
-#            return {"status": "fail", "comment": f"chat was not initiated for user {user_id}"}
-#        request_text = ''
-#        response = chat.send_message()
