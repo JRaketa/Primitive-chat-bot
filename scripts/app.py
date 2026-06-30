@@ -13,7 +13,7 @@ load_dotenv()
 import sys
 sys.path.append('./scripts')
 
-from chat_manager import ChatSessionManager
+from sessions import ChatSessionManager
 #chat_manager = ChatSessionManager(max_messages=50)
 #print(hasattr(chat_manager, 'init_session'))
 
