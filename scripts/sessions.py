@@ -141,15 +141,18 @@ class ChatSessionManager:
             "status": "error",
             "user_id": user_id,
             "building_id": building_id,
+            "subsessions_list": [],
             "comment": "no subsessions registered"}
 
     def subsessions_list_responce(
         self, user_id,
         building_id, building_sub):
         return {
+            "status": "success",
             "user_id": user_id,
             "building_id": building_id,
-            "subsessions_list": list(building_sub.keys())}
+            "subsessions_list": list(building_sub.keys()),
+            "comment": ""}
 
     def get_subsessions_list(self, user_id, building_id):
         user_sub = self._subsession.get(user_id)
@@ -265,9 +268,8 @@ class ChatSessionManager:
                 "status": "error",
                 "user_id": user_id,
                 "building_id": building_id,
-                "comment": (
-                    f"context for pair user_id {user_id} and "
-                    f"building_id {building_id} has already been registered")
+                "subsession_id": "",
+                "comment": "Pair has been registered"
                 }
         self.add_building_to_user_context(user_id, building_id)
         subsession_id = self.init_subsession(
@@ -276,7 +278,8 @@ class ChatSessionManager:
             "status": "success",
             "user_id": user_id,
             "building_id": building_id,
-            "subsession_id": subsession_id
+            "subsession_id": subsession_id,
+            "comment": ""
         }
 
 
@@ -347,20 +350,27 @@ class ChatSessionManager:
                         ))
         return all_parts
 
-    def request_to_llm(self, question, user_id, building_id, subsession_id):
+    def request_to_llm(
+        self, question, user_id,
+        building_id, subsession_id
+        ):
         #context = self.get_user_context(user_id)
         #user_prompt = self.make_user_prompt(question, context)
         chat = self.get_chat(user_id, building_id, subsession_id)
         print("chat:", chat)
         if chat == None:
-            return {"status": "error", "Comment": f"The user chat with user_id '{user_id}' and building_id '{building_id}' has not been created!"}
+            return {
+                "status": "error",
+                "comment": f"The user chat was not been created!",
+                "history": []}
 
         files_urls = self._contexts_url_files.get(building_id, None)
 
         if files_urls == None:
             return {
                 "status": "error",
-                "Comment": f"Vector store was not created for  {user_id} has not been created!"}
+                "comment": f"Vector store was not created!",
+                "history": []}
 
         all_parts = self.create_parts(files_urls)
         all_parts.append(question)
@@ -373,7 +383,17 @@ class ChatSessionManager:
                 }
             }
         })
-#        return {"status": "success"}
+        history = self.get_history(
+            user_id, building_id, subsession_id
+            )
+
+        return {
+            "status": "success",
+            "user_id": user_id,
+            "building_id": building_id,
+            "subsession_id": subsession_id,
+            "comment": "",
+            "history": history}
 
     def get_users_ids(self):
         return list(self._subsession.keys())
