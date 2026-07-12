@@ -1,6 +1,6 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, status, Body
-from typing import List, Dict, Any
-from pydantic import BaseModel
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, status, Body, Query
+from typing import List, Dict, Any, Literal
+from pydantic import BaseModel, Field
 import os
 import requests
 from dotenv import load_dotenv
@@ -90,8 +90,22 @@ def create_app():
         response: str
         history_length: int
 
+    class StartResponse(BaseModel):
+        status: str = Field(examples=[
+            "success", "error"
+            ])
+        user_id: str = Field(example="u123")
+        building_id: str = Field(example="b456")
+        subsession_id: str = Field(examples=[
+            "a3f7c9b1-2d8e-4a5c-901b-3e7f6d8a2c4d", ""])
+        comment: str = Field(examples=[
+            "", "Pair has been registered"
+            ])
 
-    @app.post("/api/building/start")
+
+    @app.post(
+        "/api/building/start",
+        response_model=StartResponse)
     async def start_building_session(
         user_id: str = Form(...),
         building_id: str = Form(...),
@@ -143,12 +157,13 @@ def create_app():
 
         if buildings_ids != None:
             if building_id in buildings_ids:
-                return {
-                    "status": "error",
-                    "user_id": user_id,
-                    "building_id": building_id,
-                    "comment": f"Pair has been registered."
-                    }
+                return StartResponse(
+                    status = "error",
+                    user_id = user_id,
+                    building_id = building_id,
+                    subsession_id = "",
+                    comment = "Pair has been registered"
+                )
 
         try:
             if building_id not in chat_manager.get_registered_contexts():
@@ -216,7 +231,13 @@ def create_app():
                     ai_context="",
                     cadastrial_context="")
 
-            return init_session_responce
+            return StartResponse(
+                status = init_session_responce.get("status"),
+                user_id = user_id,
+                building_id = building_id,
+                subsession_id = init_session_responce.get("subsession_id"),
+                comment = init_session_responce.get("comment")
+            )
 
         except Exception as e:
             import traceback
@@ -232,56 +253,89 @@ def create_app():
                 detail=f"analysis api failed: {error_details}"
                 )
 
-    @app.post("/api/building/init_subsession")
-    async def init_subsession(
-        user_id: str = Form(...),
-        building_id: str = Form(...)
-    ):
-        if not user_id:
-            raise HTTPException(
-                status_code=400, detail="user_id is required"
-                )
+    class InitSubsessionRequest(BaseModel):
+        user_id: str
+        building_id: str
 
-        users_building_ids = chat_manager.get_user_buildings_ids(user_id)
+    class InitSubsessionResponse(BaseModel):
+        status: str = Field(examples=[
+            "success", "error"
+            ])
+        user_id: str = Field(example="u123")
+        building_id: str = Field(example="b456")
+        subsession_id: str = Field(examples=[
+            "a3f7c9b1-2d8e-4a5c-901b-3e7f6d8a2c4d", ""
+            ])
+
+    @app.post(
+        "/api/building/init_subsession",
+        response_model=InitSubsessionResponse)
+    async def init_subsession(
+        payload: InitSubsessionRequest
+    ):
+
+        users_building_ids = chat_manager.get_user_buildings_ids(payload.user_id)
 
         if type(users_building_ids) == list:
-            if building_id in users_building_ids:
+            if payload.building_id in users_building_ids:
                 subsession_id = chat_manager.init_subsession(
-                    user_id, building_id)
-                return {
-                    "status": "success",
-                    "subsession_id": subsession_id,
-                    "user_id": user_id,
-                    "building_id": building_id
-                    }
+                    payload.user_id, payload.building_id)
+                return InitSubsessionResponse(
+                    status = "success",
+                    subsession_id = subsession_id,
+                    user_id = payload.user_id,
+                    building_id = payload.building_id
+                    )
             else:
-                return {
-                        "status": "error",
-                        "user_id": user_id,
-                        "building_id": building_id,
-                        "comment": (
-                            f"Pair user_id <{user_id}> and building_id <{building_id}>"
-                            "has not been registered."
-                            "Run /api/building/start method first."
-                        )}
+                return InitSubsessionResponse(
+                    status = "error",
+                    subsession_id = "",
+                    user_id = payload.user_id,
+                    building_id = payload.building_id
+                    )
         else:
-            return {
-                    "status": "error",
-                    "user_id": user_id,
-                    "building_id": building_id,
-                    "comment": (
-                        f"Pair user_id <{user_id}> and building_id <{building_id}>"
-                        "has not been registered."
-                        "Run /api/building/start method first."
-                    )}
+            return InitSubsessionResponse(
+                status = "error",
+                subsession_id = "",
+                user_id = payload.user_id,
+                building_id = payload.building_id
+                )
 
 
-    @app.post("/api/building/history")
+    class HistoryRequest(BaseModel):
+        user_id: str = Field(...)
+        building_id: str = Field(...)
+        subsession_id: str = Field(...)
+
+    class ChatMessage(BaseModel):
+        role: Literal["user", "assistant", "system"]
+        content: str
+
+    class HistoryRespoce(BaseModel):
+        status: str = Field(examples=[
+            "success", "error"
+            ])
+        user_id: str = Field(example="string")
+        building_id: str = Field(example="string")
+        subsession_id: str = Field(examples=[
+            "a3f7c9b1-2d8e-4a5c-901b-3e7f6d8a2c4d", ""
+            ])
+        comment: str = Field(example="string")
+        history: List = Field(example=[
+            [
+                {"role": "user", "content": "How many floors?"},
+                {"role": "model", "content": "The building has 6 floors."},
+            ]
+        ])
+
+    @app.get(
+        "/api/building/history",
+        response_model=HistoryRespoce)
     def get_history(
-        user_id: str = Form(...),
-        building_id: str = Form(...),
-        subsession_id: str = Form(...)
-    ):
+        user_id: str = Query(...),
+        building_id: str = Query(...),
+        subsession_id: str = Query(...)
+        ):
         """**Returns chat bot history for **user_id** and **building_id**.**
 
         **ARGS:**
@@ -306,22 +360,24 @@ def create_app():
             hist = chat_manager.get_history(
                 user_id, building_id, subsession_id
                 )
-            print("hist:", chat_manager._subsession)
+#            print("hist:", chat_manager._subsession)
             if hist:
-                return {
-                    "status": "success",
-                    "comment": "empty",
-                    "history": hist,
-                    "user_id": user_id,
-                    "building_id": building_id,
-                    "subsession_id": subsession_id}
-            return {
-                "status": "success",
-                "comment": "empty",
-                "history": [],
-                "user_id": user_id,
-                "building_id": building_id,
-                "subsession_id": subsession_id}
+                return HistoryRespoce(
+                    status = "success",
+                    comment =  "",
+                    history = hist,
+                    user_id = user_id,
+                    building_id = building_id,
+                    subsession_id = subsession_id
+                    )
+            return HistoryRespoce(
+                status = "success",
+                comment =  "empty",
+                history = [],
+                user_id = user_id,
+                building_id = building_id,
+                subsession_id = subsession_id
+                )
         except Exception as e:
             import traceback
             error_details = {
@@ -331,24 +387,52 @@ def create_app():
                 "file": sys.exc_info()[2].tb_frame.f_code.co_filename
                 }
             pprint(error_details)
-            print("_subsessionS:", chat_manager._subsession)
-            return {
-                "status": "error", "user_id": user_id,
-                "building_id": building_id,
-                "comment": f"Chat for user_id <{user_id}> and building_id <{building_id}> was not initiated."
-                }
+#            print("_subsessionS:", chat_manager._subsession)
+            return HistoryRespoce(
+                status = "error",
+                comment =  "Chat was not initiated",
+                history = [],
+                user_id = user_id,
+                building_id = building_id,
+                subsession_id = subsession_id
+                )
 
-    @app.get("/api/building/users")
+    class UsersRespoce(BaseModel):
+        users_ids: List = Field(examples=[
+            ["usr_id1", "usr_id2"]
+            ])
+
+    @app.get(
+        "/api/building/users",
+        response_model=UsersRespoce)
     def get_users():
         """**Returns list of registered users id.**
 
         Requires no params.
         """
-        return chat_manager.get_users_ids()
+        return UsersRespoce(
+            users_ids = chat_manager.get_users_ids()
+        )
 
-    @app.post("/api/building/building_context")
+    class BuildingContextRequest(BaseModel):
+        building_id: str = Field(example="string")
+
+    class BuildingContextRespoce(BaseModel):
+        status: str = Field(examples=[
+            "success", "error"
+            ])
+        building_id: str = Field(example="string")
+        cadastrial_context: str = Field(example="### Context in MD format")
+        ai_context: str = Field(example="### Context in MD format")
+        comment: str = Field(example="string")
+
+
+
+    @app.get(
+        "/api/building/building_context",
+        response_model=BuildingContextRespoce)
     def get_context(
-        building_id: str = Form(...)
+        building_id: str = Query(...)
         ):
         """Building's context is all text data was collected on registration **/api/building/start**.
         Context is used as knowledge base for the QA agent.
@@ -370,19 +454,40 @@ def create_app():
         """
         build_context = chat_manager.get_context(building_id)
         if build_context:
-            return {
-                "status": "success",
-                "context": build_context,
-                "building_id": building_id
-                }
-        return {
-            "status": "error",
-            "building_id": building_id,
-            "comment": f"There is no context for building_id <{building_id}>"}
+            return BuildingContextRespoce(
+                status = "success",
+                cadastrial_context = build_context.get("cadastrial_context", ""),
+                ai_context = build_context.get("ai_context", ""),
+                building_id = building_id,
+                comment = ""
+                )
+        return BuildingContextRespoce(
+            status = "error",
+            cadastrial_context = build_context.get("cadastrial_context", ""),
+            ai_context = build_context.get("ai_context", ""),
+            building_id = building_id,
+            comment = "Context was not loaded"
+            )
 
-    @app.post("/api/building/user_sessions")
+    class UserSessionRequest(BaseModel):
+        user_id: str = Field(example="string")
+
+    class UserSessionRespoce(BaseModel):
+        status: str = Field(examples=[
+            "success", "error"
+            ])
+        user_id: str = Field(example="b456")
+        buidings_ids: List = Field(
+            example=["B_id_1", "B_id_1", "B_id_1"]
+            )
+        comment: str = Field(example="string")
+
+
+    @app.get(
+        "/api/building/user_sessions",
+        response_model=UserSessionRespoce)
     def get_user_contexts(
-        user_id: str = Form(...)
+        user_id: str = Query(...)
     ):
         """**Returns all **building_ids** that **user_id** requested for analysis.**
 
@@ -404,35 +509,58 @@ def create_app():
         try:
             buildings_ids = chat_manager.get_user_buildings_ids(user_id)
             if buildings_ids:
-                return {
-                    "user_id": user_id,
-                    "status": "success",
-                    "buidings_ids": buildings_ids,
-                    "comment": "not empty"
-                    }
-            return {
-                "user_id": user_id,
-                "status": "error",
-                "buidings_ids": [],
-                "comment": "empty"
-                }
+                return UserSessionRespoce(
+                    user_id = user_id,
+                    status = "success",
+                    buidings_ids = buildings_ids,
+                    comment = ""
+                    )
+            return UserSessionRespoce(
+                user_id = user_id,
+                status = "error",
+                buidings_ids = [],
+                comment = "empty"
+                )
         except Exception as ex:
-            return {
-                "user_id": user_id,
-                "status": "error",
-                "comment": ex
-                }
+            return UserSessionRespoce(
+                user_id = user_id,
+                status = "error",
+                buidings_ids = [],
+                comment = ex
+                )
 
-    @app.post("/api/building/subsessions")
+    class SubsessionsRequest(BaseModel):
+        user_id: str = Field(...)
+        building_id: str = Field(...)
+
+    class SubsessionsRespoce(BaseModel):
+        status: str = Field(examples=[
+            "success", "error"
+            ])
+        user_id: str = Field(example="b456")
+        building_id: str = Field(example="u123")
+        subsessions_list: List = Field(example=[["id_123", "id_54"]])
+        comment: str = Field(example="")
+
+
+    @app.get(
+        "/api/building/subsessions",
+        response_model=SubsessionsRespoce)
     def get_user_subsessions(
-        user_id: str = Form(...),
-        building_id: str = Form(...)
+        user_id: str = Query(...),
+        building_id: str = Query(...)
         ):
         try:
             subsess_responce = chat_manager.get_subsessions_list(
                 user_id, building_id
                 )
-            return subsess_responce
+            return SubsessionsRespoce(
+                status=subsess_responce.get("status"),
+                user_id=user_id,
+                building_id=building_id,
+                subsessions_list=subsess_responce.get("subsessions_list"),
+                comment=subsess_responce.get("comment")
+                )
         except Exception as e:
             import traceback
             error_details = {
@@ -442,71 +570,89 @@ def create_app():
                 "file": sys.exc_info()[2].tb_frame.f_code.co_filename
                 }
             pprint(error_details)
-            raise HTTPException(
-                status_code=500,
-                detail={
-                    "user_id": user_id,
-                    "status": "error",
-                    "user_id": user_id,
-                    "comment": "subsessions were not extracted"
-                    }
+            return SubsessionsRespoce(
+                status="error",
+                user_id=user_id,
+                building_id=building_id,
+                subsessions_list=[],
+                comment=str(e)
                 )
 
-    @app.post("/api/building/chat")
+    class ChatRequest(BaseModel):
+        user_id: str
+        building_id: str
+        subsession_id: str
+        user_request: str
+
+    class ChatMessage(BaseModel):
+        role: Literal["user", "assistant", "system"]
+        content: str
+
+    class ChatResponse(BaseModel):
+        status: str = Field(example="success")
+        user_id: str = Field(example="u123")
+        building_id: str = Field(example="b456")
+        subsession_id: str = Field(example="s789")
+        comment: str = Field(example="string")
+        history: List = Field(example=[
+            [
+                {"role": "user", "content": "How many floors?"},
+                {"role": "model", "content": "The building has 6 floors."},
+            ]
+        ])
+        #List[ChatMessage] = Field(
+        #    default_factory=list,
+        #    example=[
+        #        {"role": "user", "content": "How many floors?"},
+        #        {"role": "model", "content": "The building has 6 floors."},
+        #    ],
+        #)
+
+    @app.post(
+        "/api/building/chat",
+        response_model=ChatResponse,          # <-- это обязательно
+        summary="Chat with model",
+        #description=".",
+        )
     def chat(
-        user_id: str = Form(...),
-        building_id: str = Form(...),
-        subsession_id: str = Form(...),
-        user_request: str = Form(...)
-    ):
-        """**Chat with model**
+        user_id: str = Query(...),
+        building_id: str = Query(...),
+        subsession_id: str = Query(...),
+        user_request: str = Query(...)
+        ):
 
-        **ARGS:**
-        * **user_id:** str
-        * **building_id**: str
-        * **subsession_id** : str
-        * **user_request**: str - question from user.
-
-        **RETURNS:**
-        ```json
-        {
-            "status": "success",
-            "user_id": user_id,
-            "building_id": building_id,
-            "subsession_id": subsession_id
-            }
-        ```
-        : json - in case of succesfull
-
-        To see the agent responce use **/api/building/history** method.
-        """
         try:
-            chat_manager.request_to_llm(
-                user_request, user_id,
-                building_id, subsession_id
+            chat_response = chat_manager.request_to_llm(
+            user_request,
+            user_id,
+            building_id,
+            subsession_id,
+            )
+            return ChatResponse(
+                status=chat_response.get("status"),
+                user_id=user_id,
+                building_id=building_id,
+                subsession_id=subsession_id,
+                comment = chat_response.get("comment"),
+                history=chat_response.get("history", []),
                 )
-            return {
-                "status": "success",
-                "user_id": user_id,
-                "building_id": building_id,
-                "subsession_id": subsession_id
-                }
         except Exception as e:
-            import traceback
+            import sys, traceback, pprint
             error_details = {
                 "error": str(e),
                 "traceback": traceback.format_exc(),
                 "line_number": sys.exc_info()[2].tb_lineno,
-                "file": sys.exc_info()[2].tb_frame.f_code.co_filename
+                "file": sys.exc_info()[2].tb_frame.f_code.co_filename,
                 }
-            pprint(error_details)
-            return {
-                "status": "error",
-                "user_id": user_id,
-                "building_id": building_id,
-                "comment": error_details
-                }
-
+            pprint.pprint(error_details)
+            return ChatResponse(
+                status="error",
+                user_id=user_id,
+                building_id=building_id,
+                subsession_id=subsession_id,
+                comment = e,
+                history=[],
+                )
     return app
 
 app = create_app()
