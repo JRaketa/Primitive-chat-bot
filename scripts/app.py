@@ -594,12 +594,7 @@ def create_app():
         building_id: str = Field(example="b456")
         subsession_id: str = Field(example="s789")
         comment: str = Field(example="string")
-        history: List = Field(example=[
-            [
-                {"role": "user", "content": "How many floors?"},
-                {"role": "model", "content": "The building has 6 floors."},
-            ]
-        ])
+        model_respoce: str = Field(example="string")
         #List[ChatMessage] = Field(
         #    default_factory=list,
         #    example=[
@@ -623,18 +618,18 @@ def create_app():
 
         try:
             chat_response = chat_manager.request_to_llm(
-            user_request,
-            user_id,
-            building_id,
-            subsession_id,
-            )
+                user_request,
+                user_id,
+                building_id,
+                subsession_id,
+                )
             return ChatResponse(
                 status=chat_response.get("status"),
                 user_id=user_id,
                 building_id=building_id,
                 subsession_id=subsession_id,
                 comment = chat_response.get("comment"),
-                history=chat_response.get("history", []),
+                model_respoce=chat_response.get("last_responce", ""),
                 )
         except Exception as e:
             import sys, traceback, pprint
@@ -651,7 +646,7 @@ def create_app():
                 building_id=building_id,
                 subsession_id=subsession_id,
                 comment = e,
-                history=[],
+                model_respoce=""
                 )
     return app
 
