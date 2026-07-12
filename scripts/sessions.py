@@ -357,7 +357,7 @@ class ChatSessionManager:
         #context = self.get_user_context(user_id)
         #user_prompt = self.make_user_prompt(question, context)
         chat = self.get_chat(user_id, building_id, subsession_id)
-        print("chat:", chat)
+        #print("chat:", chat)
         if chat == None:
             return {
                 "status": "error",
@@ -387,13 +387,19 @@ class ChatSessionManager:
             user_id, building_id, subsession_id
             )
 
+        model_responce = history[-1]
+        if model_responce.get("role") == "model":
+            last_responce = str(model_responce.get("text"))
+        else:
+            last_responce = ""
+
         return {
             "status": "success",
             "user_id": user_id,
             "building_id": building_id,
             "subsession_id": subsession_id,
             "comment": "",
-            "history": history}
+            "last_responce": last_responce}
 
     def get_users_ids(self):
         return list(self._subsession.keys())
