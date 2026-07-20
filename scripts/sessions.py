@@ -376,13 +376,7 @@ class ChatSessionManager:
         all_parts.append(question)
         chat.send_message(all_parts)
         print("chat:", chat)
-        self._subsession.update({
-            user_id: {
-                building_id: {
-                    subsession_id: chat
-                }
-            }
-        })
+        self._subsession[user_id][building_id][subsession_id] = chat
         history = self.get_history(
             user_id, building_id, subsession_id
             )
