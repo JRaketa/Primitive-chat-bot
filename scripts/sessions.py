@@ -321,7 +321,7 @@ class ChatSessionManager:
     def extract_replica_from_parts(self, msg):
         role = self.get_role(msg)
         text = self.get_text(msg)
-        return {"role": role, "text": text}
+        return {"role": role, "content": text}
 
     def extract_history(self, chat):
         history = []
