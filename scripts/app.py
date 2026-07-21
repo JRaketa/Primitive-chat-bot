@@ -308,7 +308,7 @@ def create_app():
         subsession_id: str = Field(...)
 
     class ChatMessage(BaseModel):
-        role: Literal["user", "assistant", "system"]
+        role: Literal["user", "model"]
         content: str
 
     class HistoryRespoce(BaseModel):
@@ -321,7 +321,7 @@ def create_app():
             "a3f7c9b1-2d8e-4a5c-901b-3e7f6d8a2c4d", ""
             ])
         comment: str = Field(example="string")
-        history: List = Field(example=[
+        history: List[ChatMessage] = Field(example=[
             [
                 {"role": "user", "content": "How many floors?"},
                 {"role": "model", "content": "The building has 6 floors."},
