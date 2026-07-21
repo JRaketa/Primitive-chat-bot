@@ -317,6 +317,7 @@ class ChatSessionManager:
         for part in msg.model_dump()['parts']:
             if part.get('text') != None:
                 return part.get('text')
+            return ""
 
     def extract_replica_from_parts(self, msg):
         role = self.get_role(msg)
