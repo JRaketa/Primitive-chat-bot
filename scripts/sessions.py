@@ -384,7 +384,7 @@ class ChatSessionManager:
 
         model_responce = history[-1]
         if model_responce.get("role") == "model":
-            last_responce = str(model_responce.get("text"))
+            last_responce = str(model_responce.get("content"))
         else:
             last_responce = ""
 
